@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>~/python_lab — Physics Simulations</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS (from Stitch DESIGN.md) ───────────────────────────── */
+:root {
+  --bg:         #f9f9f7;
+  --bg-low:     #f4f4f2;
+  --bg-card:    #ffffff;
+  --surface:    #eeeeec;
+  --on-bg:      #1a1c1b;
+  --on-muted:   #474550;
+  --outline:    #c8c4b8;       /* pencil line */
+  --outline-dk: #787582;
+  --ink:        #271d69;       /* primary deep indigo */
+  --ink-mid:    #3d3580;       /* primary container */
+  --ink-light:  #e4dfff;      /* primary fixed */
+  --shadow1:    #e4e0d8;
+  --shadow2:    #ece9e2;
+  --dot:        #e2dfda;
+  --mono:       'Space Grotesk', monospace;
+  --sans:       'Plus Jakarta Sans', sans-serif;
+}
+
+/* ── RESET ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--on-bg);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── DOT GRID BACKGROUND ────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────────────── */
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 40px; position: relative; z-index: 1; }
+
+/* ── NAV ────────────────────────────────────────────────────────── */
+nav {
+  position: sticky; top: 0;
+  background: rgba(249,249,247,0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--outline);
+  z-index: 100;
+  padding: 0;
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.nav-logo {
+  font-family: var(--mono);
+  font-size: 13px; font-weight: 700;
+  color: var(--ink); letter-spacing: 0.04em;
+  text-decoration: none;
+}
+.nav-links { display: flex; gap: 32px; align-items: center; }
+.nav-links a {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--on-muted); text-decoration: none;
+  position: relative; padding-bottom: 2px;
+  transition: color 0.2s;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1px; background: var(--ink);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.25s ease;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-links a:hover::after { transform: scaleX(1); }
+
+/* ── HERO ────────────────────────────────────────────────────────── */
+.hero {
+  padding: 80px 0 72px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--outline-dk);
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--on-bg);
+  margin-bottom: 20px;
+}
+.hero h1 em { font-style: normal; color: var(--ink-mid); }
+.hero-sub {
+  font-size: 15px; color: var(--on-muted);
+  line-height: 1.7; margin-bottom: 32px;
+  max-width: 380px;
+}
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 10px 20px;
+  border-radius: 100px;
+  text-decoration: none;
+  transition: all 0.2s;
+  position: relative;
+}
+.hero-cta:hover {
+  background: var(--ink); color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0 var(--shadow1), 8px 8px 0 var(--shadow2);
+}
+
+/* hero canvas */
+.hero-canvas-wrap {
+  position: relative;
+  border: 1px solid var(--outline);
+  background: var(--bg-card);
+  box-shadow: 4px 4px 0 var(--shadow1), 8px 8px 0 var(--shadow2);
+  aspect-ratio: 1;
+  max-width: 340px;
+  overflow: hidden;
+}
+.hero-canvas-label {
+  position: absolute; bottom: 10px; right: 12px;
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--outline-dk);
+}
+canvas#particles { display: block; width: 100%; height: 100%; }
+
+/* corner ticks on canvas */
+.hero-canvas-wrap::before, .hero-canvas-wrap::after,
+.tick-bl, .tick-br {
+  content: '';
+  position: absolute;
+  width: 10px; height: 10px;
+  pointer-events: none;
+}
+.hero-canvas-wrap::before { top: -1px; left: -1px; border-top: 2px solid var(--ink-mid); border-left: 2px solid var(--ink-mid); }
+.hero-canvas-wrap::after  { top: -1px; right: -1px; border-top: 2px solid var(--ink-mid); border-right: 2px solid var(--ink-mid); }
+.tick-bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--ink-mid); border-left: 2px solid var(--ink-mid); }
+.tick-br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--ink-mid); border-right: 2px solid var(--ink-mid); }
+
+/* ── SECTION HEADER ─────────────────────────────────────────────── */
+.section-header {
+  display: flex; align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--outline);
+  padding-bottom: 12px;
+  margin-bottom: 40px;
+}
+.section-title {
+  font-size: 22px; font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.section-num {
+  font-family: var(--mono); font-size: 11px;
+  font-weight: 500; letter-spacing: 0.1em;
+  color: var(--outline-dk); text-transform: uppercase;
+}
+
+/* ── PROJECT CARDS ──────────────────────────────────────────────── */
+section.projects { padding: 0 0 80px; }
+.cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--outline);
+  padding: 0;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+/* corner ticks */
+.card::before, .card::after,
+.card .tick-bl, .card .tick-br {
+  content: '';
+  position: absolute;
+  width: 8px; height: 8px;
+  pointer-events: none; z-index: 2;
+}
+.card::before  { top: -2px; left: -2px;   border-top: 2px solid var(--outline-dk); border-left: 2px solid var(--outline-dk); }
+.card::after   { top: -2px; right: -2px;  border-top: 2px solid var(--outline-dk); border-right: 2px solid var(--outline-dk); }
+.card .tick-bl { bottom: -2px; left: -2px;  border-bottom: 2px solid var(--outline-dk); border-left: 2px solid var(--outline-dk); }
+.card .tick-br { bottom: -2px; right: -2px; border-bottom: 2px solid var(--outline-dk); border-right: 2px solid var(--outline-dk); }
+
+.card:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 4px 4px 0 var(--shadow1), 8px 8px 0 var(--shadow2);
+}
+
+.card-thumb {
+  width: 100%; aspect-ratio: 16/9;
+  background: var(--surface);
+  overflow: hidden;
+  border-bottom: 1px solid var(--outline);
+  display: flex; align-items: center; justify-content: center;
+}
+.card-thumb svg { width: 100%; height: 100%; }
+
+.card-body { padding: 20px 22px 22px; }
+.card-tags { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tag {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 10px;
+  border: 1px solid var(--outline);
+  border-radius: 100px;
+  color: var(--on-muted);
+}
+.card-title {
+  font-size: 16px; font-weight: 700;
+  letter-spacing: -0.01em; margin-bottom: 8px;
+}
+.card-desc {
+  font-size: 13px; color: var(--on-muted);
+  line-height: 1.65; margin-bottom: 18px;
+}
+.card-link {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-mid); text-decoration: none;
+  border-bottom: 1px dashed var(--ink-light);
+  padding-bottom: 1px;
+  transition: border-color 0.2s;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.card-link:hover { border-color: var(--ink-mid); }
+.card-status {
+  position: absolute; top: 12px; right: 12px;
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 100px;
+}
+.status-active { background: #e4dfff; color: var(--ink-mid); }
+.status-wip    { background: #fef3c7; color: #92400e; }
+
+/* ── ABOUT / SKILLS ──────────────────────────────────────────────── */
+section.about { padding: 0 0 80px; }
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.about-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--outline);
+  padding: 28px;
+  position: relative;
+}
+.about-panel::before, .about-panel::after,
+.about-panel .tick-bl, .about-panel .tick-br {
+  content: '';
+  position: absolute;
+  width: 8px; height: 8px;
+  pointer-events: none;
+}
+.about-panel::before  { top: -2px; left: -2px;   border-top: 2px solid var(--outline); border-left: 2px solid var(--outline); }
+.about-panel::after   { top: -2px; right: -2px;  border-top: 2px solid var(--outline); border-right: 2px solid var(--outline); }
+.about-panel .tick-bl { bottom: -2px; left: -2px;  border-bottom: 2px solid var(--outline); border-left: 2px solid var(--outline); }
+.about-panel .tick-br { bottom: -2px; right: -2px; border-bottom: 2px solid var(--outline); border-right: 2px solid var(--outline); }
+
+.panel-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--outline-dk); margin-bottom: 24px;
+}
+.skill-row { margin-bottom: 20px; }
+.skill-top {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--on-muted); margin-bottom: 7px;
+}
+.skill-pct { color: var(--ink-mid); }
+.skill-track {
+  height: 2px; background: var(--outline);
+  position: relative; overflow: visible;
+}
+.skill-fill {
+  height: 2px; background: var(--ink-mid);
+  position: absolute; top: 0; left: 0;
+  transform-origin: left;
+  animation: growBar 1.2s cubic-bezier(0.16,1,0.3,1) forwards;
+  transform: scaleX(0);
+}
+@keyframes growBar {
+  to { transform: scaleX(1); }
+}
+
+/* focus area boxes */
+.focus-box {
+  border: 1px solid var(--outline);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.focus-box:last-child { margin-bottom: 0; }
+.focus-icon {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border: 1px solid var(--outline);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.focus-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.focus-desc { font-size: 12px; color: var(--on-muted); line-height: 1.5; }
+
+/* ── CONTACT ─────────────────────────────────────────────────────── */
+section.contact { padding: 0 0 80px; }
+.contact-box {
+  border: 1px solid var(--outline);
+  background: var(--bg-card);
+  padding: 48px;
+  text-align: center;
+  position: relative;
+  box-shadow: 4px 4px 0 var(--shadow1), 8px 8px 0 var(--shadow2);
+}
+.contact-box::before, .contact-box::after,
+.contact-box .tick-bl, .contact-box .tick-br {
+  content: '';
+  position: absolute; width: 10px; height: 10px; pointer-events: none;
+}
+.contact-box::before  { top: -2px; left: -2px;   border-top: 2px solid var(--ink-mid); border-left: 2px solid var(--ink-mid); }
+.contact-box::after   { top: -2px; right: -2px;  border-top: 2px solid var(--ink-mid); border-right: 2px solid var(--ink-mid); }
+.contact-box .tick-bl { bottom: -2px; left: -2px;  border-bottom: 2px solid var(--ink-mid); border-left: 2px solid var(--ink-mid); }
+.contact-box .tick-br { bottom: -2px; right: -2px; border-bottom: 2px solid var(--ink-mid); border-right: 2px solid var(--ink-mid); }
+
+.contact-box h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.contact-box p  { font-size: 14px; color: var(--on-muted); margin-bottom: 32px; }
+.contact-links { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+.contact-link {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--on-muted); text-decoration: none;
+  transition: color 0.2s;
+}
+.contact-link:hover { color: var(--ink-mid); }
+
+/* ── FOOTER ──────────────────────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--outline);
+  padding: 20px 0;
+}
+.footer-inner {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.footer-txt {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--outline-dk);
+}
+
+/* ── MODAL ────────────────────────────────────────────────────────── */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(26,28,27,0.5);
+  z-index: 500;
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--outline);
+  box-shadow: 6px 6px 0 var(--shadow1), 12px 12px 0 var(--shadow2);
+  max-width: 520px; width: 100%;
+  padding: 36px;
+  position: relative;
+  animation: slideUp 0.2s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.modal::before, .modal::after,
+.modal .tick-bl, .modal .tick-br {
+  content: ''; position: absolute; width: 10px; height: 10px; pointer-events: none;
+}
+.modal::before  { top:-2px; left:-2px;   border-top:2px solid var(--ink-mid); border-left:2px solid var(--ink-mid); }
+.modal::after   { top:-2px; right:-2px;  border-top:2px solid var(--ink-mid); border-right:2px solid var(--ink-mid); }
+.modal .tick-bl { bottom:-2px; left:-2px;  border-bottom:2px solid var(--ink-mid); border-left:2px solid var(--ink-mid); }
+.modal .tick-br { bottom:-2px; right:-2px; border-bottom:2px solid var(--ink-mid); border-right:2px solid var(--ink-mid); }
+
+.modal-close {
+  position: absolute; top: 14px; right: 16px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--outline-dk); cursor: pointer; background: none;
+  border: 1px solid var(--outline); padding: 2px 8px;
+  letter-spacing: 0.1em;
+  transition: color 0.2s, border-color 0.2s;
+}
+.modal-close:hover { color: var(--ink); border-color: var(--ink); }
+.modal-eyebrow {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--outline-dk); margin-bottom: 10px;
+}
+.modal-title { font-size: 20px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.01em; }
+.modal-desc  { font-size: 14px; color: var(--on-muted); line-height: 1.7; margin-bottom: 24px; }
+.modal-meta { border-top: 1px solid var(--outline); padding-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.meta-row { display: flex; gap: 16px; font-size: 13px; }
+.meta-key {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-mid); min-width: 72px; padding-top: 2px;
+}
+.meta-val { color: var(--on-muted); line-height: 1.5; }
+.meta-val code {
+  font-family: var(--mono); font-size: 11px;
+  background: var(--bg-low); padding: 1px 5px;
+  border: 1px solid var(--outline);
+}
+.modal-btn {
+  margin-top: 20px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  background: var(--ink); color: #fff;
+  border: none; padding: 10px 20px; cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.modal-btn:hover {
+  background: var(--ink-mid);
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 var(--shadow1);
+}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────────── */
+@media (max-width: 680px) {
+  .wrap { padding: 0 20px; }
+  .hero { grid-template-columns: 1fr; padding: 48px 0 48px; gap: 36px; }
+  .hero-canvas-wrap { max-width: 100%; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .about-grid { grid-template-columns: 1fr; }
+  .contact-box { padding: 32px 24px; }
+}
+
+/* ── PAGE ENTRY ANIMATION ─────────────────────────────────────────── */
+.fade-up {
+  opacity: 0; transform: translateY(18px);
+  animation: fadeUp 0.6s ease forwards;
+}
+@keyframes fadeUp {
+  to { opacity: 1; transform: none; }
+}
+.hero          { animation-delay: 0.05s; }
+section.projects { animation-delay: 0.1s; animation: fadeUp 0.6s 0.1s ease forwards; opacity: 0; }
+section.about    { animation-delay: 0.15s; animation: fadeUp 0.6s 0.15s ease forwards; opacity: 0; }
+section.contact  { animation-delay: 0.2s;  animation: fadeUp 0.6s 0.2s ease forwards;  opacity: 0; }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="wrap nav-inner">
+    <a href="#" class="nav-logo">~/python_lab</a>
+    <div class="nav-links">
+      <a href="#projects">Projects</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────────────── -->
+<div class="wrap">
+  <section class="hero fade-up">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Simulation Engineer</div>
+      <h1>Building systems from <em>first principles</em></h1>
+      <p class="hero-sub">Translating thermodynamics and kinetic theory into living Python simulations — where intelligence emerges from physics, not code.</p>
+      <a href="#projects" class="hero-cta">View Projects →</a>
+    </div>
+    <div class="hero-canvas-wrap">
+      <canvas id="particles" width="340" height="340"></canvas>
+      <div class="tick-bl"></div>
+      <div class="tick-br"></div>
+      <div class="hero-canvas-label">LIVE · PARTICLE SIM</div>
+    </div>
+  </section>
+</div>
+
+<!-- ── PROJECTS ─────────────────────────────────────────────────────── -->
+<div class="wrap">
+  <section class="projects" id="projects">
+    <div class="section-header">
+      <h2 class="section-title">Selected Sketches</h2>
+      <span class="section-num">01 // Projects</span>
+    </div>
+    <div class="cards-grid" id="cards-grid">
+
+      <div class="card" data-id="0">
+        <div class="tick-bl"></div><div class="tick-br"></div>
+        <span class="card-status status-active">Active</span>
+        <div class="card-thumb">
+          <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" id="thumb-0"></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-tags">
+            <span class="tag">Pygame</span>
+            <span class="tag">Thermodynamics</span>
+            <span class="tag">Emergence</span>
+          </div>
+          <div class="card-title">Proto_Life_v1</div>
+          <div class="card-desc">2D life simulation driven by Gibbs free energy. Entities react, collide and cluster — intelligent behavior emerges from ΔG, not code.</div>
+          <a href="#" class="card-link" data-id="0">VIEW_SOURCE ↗</a>
+        </div>
+      </div>
+
+      <div class="card" data-id="1">
+        <div class="tick-bl"></div><div class="tick-br"></div>
+        <span class="card-status status-wip">WIP</span>
+        <div class="card-thumb">
+          <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" id="thumb-1"></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-tags">
+            <span class="tag">NumPy</span>
+            <span class="tag">Heat Diffusion</span>
+            <span class="tag">Entropy</span>
+          </div>
+          <div class="card-title">TempField_Engine</div>
+          <div class="card-desc">2D temperature field where particles drift to equilibrium. Implements Fourier heat diffusion and real-time entropy production.</div>
+          <a href="#" class="card-link" data-id="1">VIEW_SOURCE ↗</a>
+        </div>
+      </div>
+
+      <div class="card" data-id="2">
+        <div class="tick-bl"></div><div class="tick-br"></div>
+        <span class="card-status status-active">Done</span>
+        <div class="card-thumb">
+          <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" id="thumb-2"></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-tags">
+            <span class="tag">Matplotlib</span>
+            <span class="tag">SciPy</span>
+            <span class="tag">ODE</span>
+          </div>
+          <div class="card-title">Kinetics_Plotter</div>
+          <div class="card-desc">Plots A+B→C reaction progress via ODE integration. Visualises equilibrium, rate constants, and Arrhenius activation energy.</div>
+          <a href="#" class="card-link" data-id="2">VIEW_SOURCE ↗</a>
+        </div>
+      </div>
+
+      <div class="card" data-id="3">
+        <div class="tick-bl"></div><div class="tick-br"></div>
+        <span class="card-status status-wip">WIP</span>
+        <div class="card-thumb">
+          <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" id="thumb-3"></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-tags">
+            <span class="tag">Pygame</span>
+            <span class="tag">Phase Space</span>
+            <span class="tag">Chaos</span>
+          </div>
+          <div class="card-title">PhaseSpace_Viz</div>
+          <div class="card-desc">Real-time phase space (x vs p) visualiser for coupled oscillators. Reveals attractors, chaotic orbits and Liouville's theorem live.</div>
+          <a href="#" class="card-link" data-id="3">VIEW_SOURCE ↗</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ── ABOUT ─────────────────────────────────────────────────────────── -->
+<div class="wrap">
+  <section class="about" id="about">
+    <div class="section-header">
+      <h2 class="section-title">Technical Stack</h2>
+      <span class="section-num">02 // About</span>
+    </div>
+    <div class="about-grid">
+      <div class="about-panel">
+        <div class="tick-bl"></div><div class="tick-br"></div>
+        <div class="panel-label">Skills</div>
+        <div class="skill-row">
+          <div class="skill-top"><span>Core Python</span><span class="skill-pct">95%</span></div>
+          <div class="skill-track"><div class="skill-fill" style="width:95%; animation-delay:0.1s"></div></div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-top"><span>NumPy / SciPy</span><span class="skill-pct">82%</span></div>
+          <div class="skill-track"><div class="skill-fill" style="width:82%; animation-delay:0.2s"></div></div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-top"><span>Pygame</span><span class="skill-pct">78%</span></div>
+          <div class="skill-track"><div class="skill-fill" style="width:78%; animation-delay:0.3s"></div></div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-top"><span>Physics & Thermo</span><span class="skill-pct">88%</span></div>
+          <div class="skill-track"><div class="skill-fill" style="width:88%; animation-delay:0.4s"></div></div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-top"><span>Matplotlib</span><span class="skill-pct">72%</span></div>
+          <div class="skill-track"><div class="skill-fill" style="width:72%; animation-delay:0.5s"></div></div>
+        </div>
+      </div>
+      <div class="about-panel">
+        <div class="tick-bl"></div><div class="tick-br"></div>
+        <div class="panel-label">Focus Areas</div>
+        <div class="focus-box">
+          <div class="focus-icon">⚛</div>
+          <div>
+            <div class="focus-name">Emergent Systems</div>
+            <div class="focus-desc">Complex behavior from thermodynamic rules — no hardcoded intelligence, just physics.</div>
+          </div>
+        </div>
+        <div class="focus-box">
+          <div class="focus-icon">🌡</div>
+          <div>
+            <div class="focus-name">Computational Thermodynamics</div>
+            <div class="focus-desc">Gibbs energy, entropy production, and kinetic theory translated into live simulation.</div>
+          </div>
+        </div>
+        <div class="focus-box">
+          <div class="focus-icon">📡</div>
+          <div>
+            <div class="focus-name">Scientific Visualisation</div>
+            <div class="focus-desc">Turning differential equations and phase space into real-time visual insights.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ── CONTACT ────────────────────────────────────────────────────────── -->
+<div class="wrap">
+  <section class="contact" id="contact">
+    <div class="section-header">
+      <h2 class="section-title">Get In Touch</h2>
+      <span class="section-num">03 // Contact</span>
+    </div>
+    <div class="contact-box">
+      <div class="tick-bl"></div><div class="tick-br"></div>
+      <h2>Want to explore together?</h2>
+      <p>Open to research collabs, physics chats, and fellow simulation nerds.</p>
+      <div class="contact-links">
+        <a href="mailto:you@email.com" class="contact-link">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
+          Email
+        </a>
+        <a href="https://github.com/yourusername" class="contact-link" target="_blank">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a>
+        <a href="https://linkedin.com/in/yourusername" class="contact-link" target="_blank">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          LinkedIn
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────── -->
+<div class="wrap">
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-txt">© 2026 python_lab // system_design_portfolio</span>
+      <span class="footer-txt">ΔG &lt; 0 always</span>
+    </div>
+  </footer>
+</div>
+
+<!-- ── MODAL ──────────────────────────────────────────────────────────── -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="tick-bl"></div><div class="tick-br"></div>
+    <button class="modal-close" id="modal-close">ESC</button>
+    <div class="modal-eyebrow" id="m-eye"></div>
+    <div class="modal-title" id="m-title"></div>
+    <div class="modal-desc" id="m-desc"></div>
+    <div class="modal-meta" id="m-meta"></div>
+  </div>
+</div>
+
+<script>
+/* ── DATA ──────────────────────────────────────────────────────── */
+const projects = [
+  {
+    eye: "Emergent Systems · Physics",
+    title: "Proto_Life_v1",
+    desc: "A 2D life simulation where entities have position, velocity, energy and type. They exchange energy on collision, consume resources, and react (A + B → C). Clustering, avoidance, and resource-seeking emerge from the physics — no if-statements for intelligence.",
+    principle: "ΔG = ΔH − TΔS < 0 drives all spontaneous processes. Entities move toward lower energy states naturally.",
+    tech: "Python 3, Pygame, NumPy",
+    files: "engine/physics.py · entities/particle.py · world/environment.py",
+    github: "https://github.com/yourusername/proto-life"
+  },
+  {
+    eye: "Heat Transfer · Entropy",
+    title: "TempField_Engine",
+    desc: "2D grid environment with spatially varying temperature. Particles respond to T gradients via modulated Brownian motion. Heat diffuses via Fourier's Law on a NumPy grid. Entropy production is tracked and displayed in real-time.",
+    principle: "Fourier: ∂T/∂t = α∇²T. Heat flows from hot to cold — always. Second law guaranteed.",
+    tech: "Python 3, NumPy, Pygame",
+    files: "world/environment.py · engine/physics.py",
+    github: "https://github.com/yourusername/temp-field"
+  },
+  {
+    eye: "Reaction Kinetics · ODE",
+    title: "Kinetics_Plotter",
+    desc: "Numerically integrates ODE systems for A + B → C reactions using SciPy. Interactive sliders for activation energy (Ea) and temperature. Plots concentration vs time, equilibrium constants (Keq), and Arrhenius-based rate constants.",
+    principle: "d[A]/dt = −k[A][B], k = A·exp(−Ea/RT). Le Chatelier's principle governs equilibrium shifts.",
+    tech: "Python 3, SciPy, Matplotlib, NumPy",
+    files: "engine/chemistry.py · plots/kinetics.py",
+    github: "https://github.com/yourusername/kinetics"
+  },
+  {
+    eye: "Phase Space · Chaos Theory",
+    title: "PhaseSpace_Viz",
+    desc: "Real-time 2D phase space (position vs momentum) visualiser for particle systems. Tracks trajectories of coupled oscillators, revealing Hamiltonian conserved quantities, chaotic vs regular orbits, and Liouville's theorem visually.",
+    principle: "Liouville's theorem: phase space volume is conserved for Hamiltonian systems. Chaos lives in the boundary.",
+    tech: "Python 3, Pygame, NumPy, SciPy",
+    files: "visualiser/phase.py · engine/physics.py",
+    github: "https://github.com/yourusername/phase-space"
+  }
+];
+
+/* ── HERO PARTICLE CANVAS ─────────────────────────────────────── */
+(function() {
+  const cvs = document.getElementById('particles');
+  const ctx = cvs.getContext('2d');
+  const W = cvs.width, H = cvs.height;
+  const N = 38;
+  const INK = '#271d69';
+  const particles = [];
+
+  for (let i = 0; i < N; i++) {
+    particles.push({
+      x: Math.random() * W, y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: (Math.random() - 0.5) * 0.8,
+      r: 1.5 + Math.random() * 2,
+      e: 0.3 + Math.random() * 0.7
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#f9f9f7';
+    ctx.fillRect(0, 0, W, H);
+
+    // connections
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 80) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(39,29,105,${0.12 * (1 - d/80)})`;
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // particles
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(39,29,105,${p.e})`;
+      ctx.fill();
+
+      // pencil outline
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r + 1, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(61,53,128,0.25)`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      // update
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+
+      // slight energy exchange sim
+      p.e += (Math.random() - 0.5) * 0.01;
+      p.e = Math.max(0.1, Math.min(1, p.e));
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── CARD THUMBNAILS (SVG sketches) ───────────────────────────── */
+function drawThumb(id, drawFn) {
+  const svg = document.getElementById('thumb-' + id);
+  svg.innerHTML = drawFn();
+}
+
+// 0: particle cloud
+drawThumb(0, () => {
+  let s = '<rect width="320" height="180" fill="#f4f4f2"/>';
+  const pts = [];
+  for (let i = 0; i < 30; i++) pts.push([20 + Math.random()*280, 10 + Math.random()*160]);
+  pts.forEach(([x,y],i) => {
+    pts.forEach(([x2,y2],j) => {
+      if (j > i) {
+        const d = Math.hypot(x-x2, y-y2);
+        if (d < 75) s += `<line x1="${x}" y1="${y}" x2="${x2}" y2="${y2}" stroke="#c8c4b8" stroke-width="0.5" opacity="${1-d/75}"/>`;
+      }
+    });
+    s += `<circle cx="${x}" cy="${y}" r="2.5" fill="#271d69" opacity="0.7"/>`;
+  });
+  s += `<text x="12" y="170" font-family="Space Grotesk" font-size="9" fill="#787582" letter-spacing="2">ΔG · PARTICLE SYSTEM</text>`;
+  return s;
+});
+
+// 1: heat grid
+drawThumb(1, () => {
+  let s = '<rect width="320" height="180" fill="#f4f4f2"/>';
+  for (let x = 10; x < 310; x += 20) {
+    for (let y = 10; y < 170; y += 20) {
+      const heat = Math.exp(-((x-160)**2 + (y-90)**2) / 8000);
+      const r = Math.round(39 + heat * 80), g = Math.round(29 + heat * 10), b = Math.round(105 - heat * 60);
+      s += `<rect x="${x-8}" y="${y-8}" width="16" height="16" fill="rgb(${r},${g},${b})" opacity="${0.15 + heat * 0.5}"/>`;
+    }
+  }
+  s += `<text x="12" y="170" font-family="Space Grotesk" font-size="9" fill="#787582" letter-spacing="2">FOURIER · HEAT FIELD</text>`;
+  return s;
+});
+
+// 2: reaction curves
+drawThumb(2, () => {
+  let s = '<rect width="320" height="180" fill="#f4f4f2"/>';
+  s += '<line x1="30" y1="20" x2="30" y2="155" stroke="#c8c4b8" stroke-width="1"/>';
+  s += '<line x1="30" y1="155" x2="300" y2="155" stroke="#c8c4b8" stroke-width="1"/>';
+  // curve A decaying
+  let dA = 'M 30 35';
+  for (let i = 0; i <= 60; i++) {
+    const x = 30 + i * 4.5;
+    const y = 35 + 100 * (1 - Math.exp(-i * 0.06));
+    dA += ` L ${x} ${y}`;
+  }
+  s += `<path d="${dA}" fill="none" stroke="#271d69" stroke-width="1.5"/>`;
+  // curve C rising
+  let dC = 'M 30 145';
+  for (let i = 0; i <= 60; i++) {
+    const x = 30 + i * 4.5;
+    const y = 145 - 90 * (1 - Math.exp(-i * 0.06));
+    dC += ` L ${x} ${y}`;
+  }
+  s += `<path d="${dC}" fill="none" stroke="#787582" stroke-width="1" stroke-dasharray="3,2"/>`;
+  s += `<text x="12" y="170" font-family="Space Grotesk" font-size="9" fill="#787582" letter-spacing="2">A+B→C · ODE KINETICS</text>`;
+  return s;
+});
+
+// 3: phase space spiral
+drawThumb(3, () => {
+  let s = '<rect width="320" height="180" fill="#f4f4f2"/>';
+  s += '<line x1="160" y1="10" x2="160" y2="170" stroke="#e2e0da" stroke-width="0.8"/>';
+  s += '<line x1="20" y1="90" x2="300" y2="90" stroke="#e2e0da" stroke-width="0.8"/>';
+  // ellipse orbit
+  for (let k = 0; k < 3; k++) {
+    const rx = 50 + k*25, ry = 30 + k*15;
+    s += `<ellipse cx="160" cy="90" rx="${rx}" ry="${ry}" fill="none" stroke="#271d69" stroke-width="${1.2 - k*0.3}" opacity="${0.9 - k*0.25}"/>`;
+  }
+  // chaotic tail
+  let chaos = 'M 160 90';
+  let cx2 = 160, cy2 = 90;
+  for (let i = 0; i < 80; i++) {
+    cx2 += Math.sin(i * 0.43) * 3.5;
+    cy2 += Math.cos(i * 0.67) * 2.2;
+    chaos += ` L ${cx2} ${cy2}`;
+  }
+  s += `<path d="${chaos}" fill="none" stroke="#3d3580" stroke-width="0.6" opacity="0.4"/>`;
+  s += `<text x="12" y="170" font-family="Space Grotesk" font-size="9" fill="#787582" letter-spacing="2">PHASE SPACE · x vs p</text>`;
+  return s;
+});
+
+/* ── MODAL LOGIC ──────────────────────────────────────────────── */
+function openModal(id) {
+  const p = projects[id];
+  document.getElementById('m-eye').textContent = p.eye;
+  document.getElementById('m-title').textContent = p.title;
+  document.getElementById('m-desc').textContent = p.desc;
+  document.getElementById('m-meta').innerHTML = `
+    <div class="meta-row"><span class="meta-key">Principle</span><span class="meta-val" style="font-style:italic">${p.principle}</span></div>
+    <div class="meta-row"><span class="meta-key">Tech</span><span class="meta-val">${p.tech}</span></div>
+    <div class="meta-row"><span class="meta-key">Files</span><span class="meta-val"><code>${p.files}</code></span></div>
+    <a href="${p.github}" target="_blank" class="modal-btn">GitHub ↗</a>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+document.querySelectorAll('.card').forEach(c => {
+  c.addEventListener('click', e => {
+    if (!e.target.classList.contains('card-link')) openModal(+c.dataset.id);
+  });
+});
+document.querySelectorAll('.card-link').forEach(l => {
+  l.addEventListener('click', e => { e.preventDefault(); openModal(+l.dataset.id); });
+});
+document.getElementById('modal-close').addEventListener('click', () => {
+  document.getElementById('modal').classList.remove('open');
+});
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) document.getElementById('modal').classList.remove('open');
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('modal').classList.remove('open');
+});
+</script>
+</body>
+</html>
